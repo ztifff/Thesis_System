@@ -1,4 +1,5 @@
 from ui import MazeUI, COLOR_BFS, COLOR_DFS, COLOR_BFS_VISITED, COLOR_DFS_VISITED
+from results import ResultsManager
 import maze
 import bfs
 import dfs
@@ -8,6 +9,7 @@ import time
 class MazeController:
     def __init__(self):
         self.ui = MazeUI()
+        self.results_manager = ResultsManager(self.ui)
         self.maze_width = 31
         self.maze_height = 31
         self.maze_grid = []
@@ -26,7 +28,7 @@ class MazeController:
         self.generate_new_maze()
         
     def show_settings(self):
-        self.ui.open_settings_modal(self.maze_width, self.maze_height, self.generate_new_maze)
+        self.ui.open_settings_modal(self.maze_width, self.maze_height, self.generate_new_maze, self.results_manager.show_history_list)
 
     def generate_new_maze(self, width=31, height=31):
         self.maze_grid, self.maze_width, self.maze_height = maze.generate_maze(width, height)
@@ -150,6 +152,23 @@ class MazeController:
                 
         # Unlock the canvas when finished
         self.is_animating = False
+
+        bfs_final_data = {
+            "nodes": int(self.ui.bfs_nodes_lbl.cget("text").split(": ")[1]),
+            "time_ms": float(self.ui.bfs_time_lbl.cget("text").split(": ")[1].replace("ms", "")),
+            "path": len(self.bfs_final_path),
+            "mem_kb": float(self.ui.bfs_mem_lbl.cget("text").split(": ")[1].replace("KB", ""))
+        }
+        
+        dfs_final_data = {
+            "nodes": int(self.ui.dfs_nodes_lbl.cget("text").split(": ")[1]),
+            "time_ms": float(self.ui.dfs_time_lbl.cget("text").split(": ")[1].replace("ms", "")),
+            "path": len(self.dfs_final_path),
+            "mem_kb": float(self.ui.dfs_mem_lbl.cget("text").split(": ")[1].replace("KB", ""))
+        }
+
+        # Pop up the Result Summary modal!
+        self.results_manager.show_summary(bfs_final_data, dfs_final_data)
 
     def run(self):
         self.ui.mainloop()

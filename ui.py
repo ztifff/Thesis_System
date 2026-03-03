@@ -195,7 +195,7 @@ class MazeUI(ctk.CTk):
         self.bfs_canvas.create_rectangle(x1, y1, x2+1, y2+1, fill=color, outline=color)
         self.dfs_canvas.create_rectangle(x1, y1, x2+1, y2+1, fill=color, outline=color)
 
-    def open_settings_modal(self, current_w, current_h, on_generate_callback):
+    def open_settings_modal(self, current_w, current_h, on_generate_callback, on_history_callback):
         modal = ctk.CTkToplevel(self)
         modal.title("Menu")
         modal.geometry("400x370") 
@@ -239,4 +239,6 @@ class MazeUI(ctk.CTk):
                 error_label.configure(text="Please enter valid integers.")
 
         ctk.CTkButton(btn_frame, text="Generate Maze", fg_color=COLOR_BFS, command=apply_and_generate).pack(side="left", padx=5)
-        ctk.CTkButton(modal, text="Result History", fg_color=COLOR_BATCH).pack(pady=10, padx=40, fill="x")
+        
+        # This button now correctly uses the on_history_callback parameter
+        ctk.CTkButton(modal, text="Result History", fg_color=COLOR_BATCH, command=lambda: [modal.destroy(), on_history_callback()]).pack(pady=10, padx=40, fill="x")
