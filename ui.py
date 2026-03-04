@@ -116,8 +116,8 @@ class MazeUI(ctk.CTk):
         self.btn_run = ctk.CTkButton(self.controls_frame, text="▶ Run Simulation", fg_color=COLOR_BFS, hover_color="#229666", font=ctk.CTkFont(weight="bold"))
         self.btn_run.pack(side="left", padx=5)
         
-        self.btn_batch = ctk.CTkButton(self.controls_frame, text="▶ Run Step-by-Step", fg_color=COLOR_BATCH, hover_color="#2b61c2", font=ctk.CTkFont(weight="bold"))
-        self.btn_batch.pack(side="left", padx=5)
+        self.btn_step = ctk.CTkButton(self.controls_frame, text="▶ Run Step-by-Step", fg_color=COLOR_BATCH, hover_color="#2b61c2", font=ctk.CTkFont(weight="bold"))
+        self.btn_step.pack(side="left", padx=5)
 
     def draw_maze(self, maze_grid, width, height):
         self.update_idletasks()

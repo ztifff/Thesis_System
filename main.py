@@ -10,6 +10,7 @@ class MazeController:
     def __init__(self):
         self.ui = MazeUI()
         self.results_manager = ResultsManager(self.ui)
+        
         self.maze_width = 31
         self.maze_height = 31
         self.maze_grid = []
@@ -18,12 +19,17 @@ class MazeController:
         self.ui.btn_run.configure(command=self.run_simulation)
         self.ui.btn_reset.configure(command=self.reset_simulation)
         
+        # BIND THE NEW STEP BUTTON
+        self.ui.btn_step.configure(command=self.run_step_by_step) 
+        
         self.ui.bind("<Configure>", self.on_window_resize)
         self._resize_timer = None
         self._animation_job = None
         
         self.is_paused = False 
-        self.is_animating = False # Tracks if simulation is actively running
+        self.is_animating = False 
+        self.simulation_initialized = False # Tracks if we've started a run
+        self.auto_play = False # Tracks if we are in looping mode
         
         self.generate_new_maze()
         
@@ -38,14 +44,10 @@ class MazeController:
         self.ui.draw_maze(self.maze_grid, self.maze_width, self.maze_height)
 
     def on_window_resize(self, event):
-        # 1. Ignore events triggered by buttons/labels updating inside the window
         if event.widget != self.ui:
             return
-            
-        # 2. FIX: Prevent the canvas from wiping while the algorithms are searching!
         if getattr(self, 'is_animating', False):
             return
-
         if self._resize_timer is not None:
             self.ui.after_cancel(self._resize_timer)
         self._resize_timer = self.ui.after(50, self.update_ui_maze)
@@ -63,17 +65,15 @@ class MazeController:
         if self._animation_job:
             self.ui.after_cancel(self._animation_job)
         self.is_paused = False
-        self.is_animating = False # Reset state
+        self.is_animating = False 
+        self.simulation_initialized = False # Clear the init state
+        self.auto_play = False
         self.update_ui_maze()
         self.ui.update_metrics("bfs", 0, 0, 0, 0, False)
         self.ui.update_metrics("dfs", 0, 0, 0, 0, False)
 
-    def run_simulation(self):
-        self.reset_simulation()
-        
-        # Lock the canvas so it doesn't wipe
-        self.is_animating = True 
-        
+    def init_simulation_state(self):
+        """Initializes the generators once per run, regardless of play mode."""
         start, exits = self.get_start_and_exits()
         
         self.bfs_gen = bfs.run_bfs_generator(self.maze_grid, start, exits)
@@ -90,30 +90,47 @@ class MazeController:
         self.last_shift_time = time.time()
         self.shift_interval = random.uniform(1.0, 3.0) 
         
+        self.simulation_initialized = True
+        self.is_animating = True
+
+    def run_simulation(self):
+        """Auto-plays the simulation."""
+        if not self.simulation_initialized:
+            self.init_simulation_state()
+            
+        self.auto_play = True
         self.animate_search()
 
-    def unpause(self):
-        self.is_paused = False
-
-    def animate_search(self):
-        if self.is_paused:
-            self._animation_job = self.ui.after(10, self.animate_search)
-            return
-
-        # 1-3 Second Dynamic Shift Trigger
+    def run_step_by_step(self):
+        """Advances the simulation by exactly one node click-by-click."""
+        if not self.simulation_initialized:
+            self.init_simulation_state()
+            
+        self.auto_play = False # Stop the auto-player if it was running
+        
+        if self.bfs_done and self.dfs_done:
+            return # Don't do anything if they both already finished
+            
+        # 1. Manual Step Dynamic Wall Check
         if time.time() - self.last_shift_time >= self.shift_interval:
             self.maze_grid, cx, cy, val = maze.update_maze_dynamically(self.maze_grid, self.maze_width, self.maze_height)
             if cx != -1:
                 self.ui.update_single_wall(cx, cy, val == 1)
-            
             self.last_shift_time = time.time()
             self.shift_interval = random.uniform(1.0, 3.0)
-            
-            self.is_paused = True
-            self.ui.after(600, self.unpause)
-            self._animation_job = self.ui.after(10, self.animate_search)
-            return
 
+        # 2. Advance exactly one node
+        self.process_algorithm_steps()
+
+        # 3. Check for finish
+        if self.bfs_done and self.dfs_done:
+            self.draw_final_paths()
+
+    def unpause(self):
+        self.is_paused = False
+
+    def process_algorithm_steps(self):
+        """A helper method to advance generators by one step."""
         if not self.bfs_done:
             try:
                 b_curr, b_path, self.bfs_done, b_metrics = next(self.bfs_gen)
@@ -136,6 +153,30 @@ class MazeController:
             except StopIteration:
                 self.dfs_done = True
 
+    def animate_search(self):
+        """The looping method for auto-play."""
+        if not self.auto_play:
+            return # Kills the loop if the user clicked Step-by-Step
+
+        if self.is_paused:
+            self._animation_job = self.ui.after(10, self.animate_search)
+            return
+
+        if time.time() - self.last_shift_time >= self.shift_interval:
+            self.maze_grid, cx, cy, val = maze.update_maze_dynamically(self.maze_grid, self.maze_width, self.maze_height)
+            if cx != -1:
+                self.ui.update_single_wall(cx, cy, val == 1)
+            
+            self.last_shift_time = time.time()
+            self.shift_interval = random.uniform(1.0, 3.0)
+            
+            self.is_paused = True
+            self.ui.after(600, self.unpause)
+            self._animation_job = self.ui.after(10, self.animate_search)
+            return
+
+        self.process_algorithm_steps()
+
         if not self.bfs_done or not self.dfs_done:
             self._animation_job = self.ui.after(10, self.animate_search)
         else:
@@ -150,7 +191,6 @@ class MazeController:
             if self.maze_grid[y][x] not in ['S', 'E', 1]:
                 self.ui.color_cell("dfs", x, y, COLOR_DFS)
                 
-        # Unlock the canvas when finished
         self.is_animating = False
 
         bfs_final_data = {
@@ -167,7 +207,6 @@ class MazeController:
             "mem_kb": float(self.ui.dfs_mem_lbl.cget("text").split(": ")[1].replace("KB", ""))
         }
 
-        # Pop up the Result Summary modal!
         self.results_manager.show_summary(bfs_final_data, dfs_final_data)
 
     def run(self):
