@@ -81,6 +81,24 @@ class MazeUI(ctk.CTk):
         self.dfs_mem_lbl = ctk.CTkLabel(self.dfs_card, text="Memory: 0KB", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold"))
         self.dfs_mem_lbl.pack(anchor="w", padx=15, pady=(0, 15))
 
+        # --- NEW: LEGEND CARD ---
+        self.legend_card = ctk.CTkFrame(self.left_panel, fg_color=BG_SECONDARY, corner_radius=10)
+        self.legend_card.pack(fill="x", pady=(20, 0))
+
+        ctk.CTkLabel(self.legend_card, text="LEGEND", text_color="white", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5))
+
+        self._add_legend_item(self.legend_card, COLOR_BFS, "Start Node", is_circle=True)
+        self._add_legend_item(self.legend_card, COLOR_RESET, "Exit Node", is_circle=True)
+        self._add_legend_item(self.legend_card, "#000000", "Wall / Obstacle")
+        self._add_legend_item(self.legend_card, "#ffffff", "Open Path")
+        self._add_legend_item(self.legend_card, COLOR_BFS_VISITED, "BFS Explored")
+        self._add_legend_item(self.legend_card, COLOR_BFS, "BFS Final Path")
+        self._add_legend_item(self.legend_card, COLOR_DFS_VISITED, "DFS Explored")
+        self._add_legend_item(self.legend_card, COLOR_DFS, "DFS Final Path")
+        
+        # Bottom padding for the legend card
+        ctk.CTkFrame(self.legend_card, fg_color="transparent", height=10).pack()
+
         # --- RIGHT PANEL (Mazes & Controls) ---
         self.right_panel = ctk.CTkFrame(self.body_frame, fg_color="transparent")
         self.right_panel.pack(side="left", fill="both", expand=True)
@@ -118,6 +136,22 @@ class MazeUI(ctk.CTk):
         
         self.btn_step = ctk.CTkButton(self.controls_frame, text="▶ Run Step-by-Step", fg_color=COLOR_BATCH, hover_color="#2b61c2", font=ctk.CTkFont(weight="bold"))
         self.btn_step.pack(side="left", padx=5)
+
+    def _add_legend_item(self, parent, color, text, is_circle=False):
+        """Helper to draw a color box/circle and text for the legend."""
+        row = ctk.CTkFrame(parent, fg_color="transparent")
+        row.pack(fill="x", padx=15, pady=3)
+        
+        # Color indicator (Circle or Square)
+        indicator = ctk.CTkFrame(row, width=14, height=14, fg_color=color, 
+                                 corner_radius=7 if is_circle else 2, 
+                                 border_width=1 if color == "#ffffff" else 0, 
+                                 border_color="#cccccc")
+        indicator.pack(side="left", padx=(0, 10))
+        indicator.pack_propagate(False) # Prevents it from shrinking
+        
+        # Label text
+        ctk.CTkLabel(row, text=text, text_color=TEXT_LIGHT, font=ctk.CTkFont(size=12)).pack(side="left")
 
     def draw_maze(self, maze_grid, width, height):
         self.update_idletasks()
