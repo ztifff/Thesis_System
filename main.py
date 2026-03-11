@@ -5,6 +5,7 @@ import bfs
 import dfs
 import random
 import time
+import copy  # <-- NEW: Used to take a perfect snapshot of the 2D array
 
 class MazeController:
     def __init__(self):
@@ -14,6 +15,7 @@ class MazeController:
         self.maze_width = 31
         self.maze_height = 31
         self.maze_grid = []
+        self.original_maze_grid = []  # <-- NEW: Will hold the untouched pristine maze
         
         self.ui.btn_settings.configure(command=self.show_settings)
         self.ui.btn_run.configure(command=self.run_simulation)
@@ -37,7 +39,12 @@ class MazeController:
         self.ui.open_settings_modal(self.maze_width, self.maze_height, self.generate_new_maze, self.results_manager.show_history_list)
 
     def generate_new_maze(self, width=31, height=31):
+        # 1. Generate the raw walls/paths ONLY
         self.maze_grid, self.maze_width, self.maze_height = maze.generate_maze(width, height)
+        
+        # 2. Save a deepcopy of the BLANK maze
+        self.base_maze_grid = copy.deepcopy(self.maze_grid) 
+        
         self.reset_simulation()
 
     def update_ui_maze(self):
@@ -66,8 +73,15 @@ class MazeController:
             self.ui.after_cancel(self._animation_job)
         self.is_paused = False
         self.is_animating = False 
-        self.simulation_initialized = False # Clear the init state
+        self.simulation_initialized = False 
         self.auto_play = False
+        
+        # 3. Every time we reset, load the blank maze...
+        if getattr(self, 'base_maze_grid', None):
+            self.maze_grid = copy.deepcopy(self.base_maze_grid)
+            # 4. ... and throw NEW random targets on it!
+            self.maze_grid = maze.place_random_start_exits(self.maze_grid, self.maze_width, self.maze_height)
+            
         self.update_ui_maze()
         self.ui.update_metrics("bfs", 0, 0, 0, 0, False)
         self.ui.update_metrics("dfs", 0, 0, 0, 0, False)
@@ -88,7 +102,7 @@ class MazeController:
         self.dfs_final_path = []
         
         self.last_shift_time = time.time()
-        self.shift_interval = random.uniform(1.0, 3.0) 
+        self.shift_interval = random.uniform(1.0, 2.0) 
         
         self.simulation_initialized = True
         self.is_animating = True
@@ -117,7 +131,7 @@ class MazeController:
             if cx != -1:
                 self.ui.update_single_wall(cx, cy, val == 1)
             self.last_shift_time = time.time()
-            self.shift_interval = random.uniform(1.0, 3.0)
+            self.shift_interval = random.uniform(1.0, 2.0)
 
         # 2. Advance exactly one node
         self.process_algorithm_steps()
@@ -168,7 +182,7 @@ class MazeController:
                 self.ui.update_single_wall(cx, cy, val == 1)
             
             self.last_shift_time = time.time()
-            self.shift_interval = random.uniform(1.0, 3.0)
+            self.shift_interval = random.uniform(1.0, 2.0)
             
             self.is_paused = True
             self.ui.after(600, self.unpause)

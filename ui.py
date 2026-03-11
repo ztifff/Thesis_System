@@ -49,21 +49,21 @@ class MazeUI(ctk.CTk):
         self.left_panel = ctk.CTkFrame(self.body_frame, width=250, fg_color="transparent")
         self.left_panel.pack(side="left", fill="y", padx=(0, 20))
         
-        # BFS Stats Card
+       # BFS Stats Card
         self.bfs_card = ctk.CTkFrame(self.left_panel, fg_color=BG_SECONDARY, corner_radius=10)
-        self.bfs_card.pack(fill="x", pady=(0, 20))
+        self.bfs_card.pack(fill="x", pady=(0, 10)) # Reduced bottom gap from 20 to 10
         
         self.bfs_status_lbl = ctk.CTkLabel(self.bfs_card, text="BFS STATUS: Idle", fg_color=COLOR_BFS, corner_radius=6, text_color="white", font=ctk.CTkFont(weight="bold"))
         self.bfs_status_lbl.pack(fill="x", padx=10, pady=10)
         
         self.bfs_nodes_lbl = ctk.CTkLabel(self.bfs_card, text="Nodes: 0", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold"))
         self.bfs_nodes_lbl.pack(anchor="w", padx=15, pady=(0,2))
-        self.bfs_time_lbl = ctk.CTkLabel(self.bfs_card, text="Time: 0.0ms", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold"))
+        self.bfs_time_lbl = ctk.CTkLabel(self.bfs_card, text="Time: 0.00ms", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold"))
         self.bfs_time_lbl.pack(anchor="w", padx=15, pady=(0,2))
         self.bfs_path_lbl = ctk.CTkLabel(self.bfs_card, text="Path: 0", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold"))
         self.bfs_path_lbl.pack(anchor="w", padx=15, pady=(0,2))
-        self.bfs_mem_lbl = ctk.CTkLabel(self.bfs_card, text="Memory: 0KB", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold"))
-        self.bfs_mem_lbl.pack(anchor="w", padx=15, pady=(0, 15))
+        self.bfs_mem_lbl = ctk.CTkLabel(self.bfs_card, text="Memory: 0.00KB", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold"))
+        self.bfs_mem_lbl.pack(anchor="w", padx=15, pady=(0, 10)) # Reduced inner gap from 15 to 10
 
         # DFS Stats Card
         self.dfs_card = ctk.CTkFrame(self.left_panel, fg_color=BG_SECONDARY, corner_radius=10)
@@ -74,18 +74,18 @@ class MazeUI(ctk.CTk):
         
         self.dfs_nodes_lbl = ctk.CTkLabel(self.dfs_card, text="Nodes: 0", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold"))
         self.dfs_nodes_lbl.pack(anchor="w", padx=15, pady=(0,2))
-        self.dfs_time_lbl = ctk.CTkLabel(self.dfs_card, text="Time: 0.0ms", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold"))
+        self.dfs_time_lbl = ctk.CTkLabel(self.dfs_card, text="Time: 0.00ms", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold"))
         self.dfs_time_lbl.pack(anchor="w", padx=15, pady=(0,2))
         self.dfs_path_lbl = ctk.CTkLabel(self.dfs_card, text="Path: 0", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold"))
         self.dfs_path_lbl.pack(anchor="w", padx=15, pady=(0,2))
-        self.dfs_mem_lbl = ctk.CTkLabel(self.dfs_card, text="Memory: 0KB", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold"))
-        self.dfs_mem_lbl.pack(anchor="w", padx=15, pady=(0, 15))
+        self.dfs_mem_lbl = ctk.CTkLabel(self.dfs_card, text="Memory: 0.00KB", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold"))
+        self.dfs_mem_lbl.pack(anchor="w", padx=15, pady=(0, 10)) # Reduced inner gap from 15 to 10
 
-        # --- NEW: LEGEND CARD ---
+        # --- LEGEND CARD ---
         self.legend_card = ctk.CTkFrame(self.left_panel, fg_color=BG_SECONDARY, corner_radius=10)
-        self.legend_card.pack(fill="x", pady=(20, 0))
+        self.legend_card.pack(fill="x", pady=(10, 0)) # Reduced top gap from 20 to 10
 
-        ctk.CTkLabel(self.legend_card, text="LEGEND", text_color="white", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5))
+        ctk.CTkLabel(self.legend_card, text="LEGEND", text_color="white", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5)) # Tightened title spacing
 
         self._add_legend_item(self.legend_card, COLOR_BFS, "Start Node", is_circle=True)
         self._add_legend_item(self.legend_card, COLOR_RESET, "Exit Node", is_circle=True)
@@ -97,7 +97,7 @@ class MazeUI(ctk.CTk):
         self._add_legend_item(self.legend_card, COLOR_DFS, "DFS Final Path")
         
         # Bottom padding for the legend card
-        ctk.CTkFrame(self.legend_card, fg_color="transparent", height=10).pack()
+        ctk.CTkFrame(self.legend_card, fg_color="transparent", height=5).pack() # Reduced from 10 to 5
 
         # --- RIGHT PANEL (Mazes & Controls) ---
         self.right_panel = ctk.CTkFrame(self.body_frame, fg_color="transparent")
@@ -140,7 +140,9 @@ class MazeUI(ctk.CTk):
     def _add_legend_item(self, parent, color, text, is_circle=False):
         """Helper to draw a color box/circle and text for the legend."""
         row = ctk.CTkFrame(parent, fg_color="transparent")
-        row.pack(fill="x", padx=15, pady=3)
+        
+        # Reduced pady from 3 to 1 to stack the legend items tighter
+        row.pack(fill="x", padx=15, pady=1) 
         
         # Color indicator (Circle or Square)
         indicator = ctk.CTkFrame(row, width=14, height=14, fg_color=color, 
@@ -148,7 +150,7 @@ class MazeUI(ctk.CTk):
                                  border_width=1 if color == "#ffffff" else 0, 
                                  border_color="#cccccc")
         indicator.pack(side="left", padx=(0, 10))
-        indicator.pack_propagate(False) # Prevents it from shrinking
+        indicator.pack_propagate(False) 
         
         # Label text
         ctk.CTkLabel(row, text=text, text_color=TEXT_LIGHT, font=ctk.CTkFont(size=12)).pack(side="left")
