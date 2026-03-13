@@ -2,6 +2,8 @@ import customtkinter as ctk
 import json
 import os
 from datetime import datetime
+from pymongo import MongoClient
+import certifi
 
 # Color Palette
 BG_MAIN = "#1e1e24"
@@ -17,18 +19,33 @@ COLOR_RECOMMENDATION = "#facc15"
 class ResultsManager:
     def __init__(self, parent_ui):
         self.parent = parent_ui
-        self.history_file = "simulation_history.json"
+        
+        # ---> CLOUD DATABASE SETUP <---
+        # Replace this string with your actual MongoDB Atlas connection link!
+        self.connection_string = "mongodb+srv://thesis_admin:CQvw7ESoyGx1k3b8@dynamicmaze.bptjs3z.mongodb.net/?appName=DynamicMaze"
+        
+        try:
+            self.client = MongoClient(self.connection_string, tlsCAFile=certifi.where())
+            self.db = self.client['thesis_database']
+            self.collection = self.db['simulation_results']
+            print("Successfully connected to the Cloud Database!")
+        except Exception as e:
+            print("Database connection failed. Check your connection string or internet:", e)
+            self.collection = None
+
         self.history = self.load_history()
 
     def load_history(self):
-        if os.path.exists(self.history_file):
-            with open(self.history_file, 'r') as f:
-                return json.load(f)
+        """Pulls all saved results down from the cloud."""
+        if self.collection is not None:
+            try:
+                # Fetch all records, hiding the internal MongoDB '_id'
+                cloud_data = list(self.collection.find({}, {"_id": 0}))
+                return cloud_data
+            except Exception as e:
+                print("Failed to pull data from cloud:", e)
+                return []
         return []
-
-    def save_history(self):
-        with open(self.history_file, 'w') as f:
-            json.dump(self.history, f, indent=4)
 
     def center_modal(self, modal, width, height):
         modal.update_idletasks()
@@ -74,7 +91,7 @@ class ResultsManager:
             else:
                 text = f"💡 Recommendation: DFS is recommended. Both algorithms tied in performance metrics (2 to 2), but DFS broke the tie with a faster execution time ({dfs_data['time_ms']:.2f}ms)."
                 return text, "DFS"
-    # ---> NEW: Added rerun_callback parameter <---
+
     def show_summary(self, bfs_data, dfs_data, rerun_callback=None):
         modal = ctk.CTkToplevel(self.parent)
         modal.title("Result Summary")
@@ -107,7 +124,6 @@ class ResultsManager:
         rec_label = ctk.CTkLabel(modal, text=rec_text, text_color=COLOR_RECOMMENDATION, font=ctk.CTkFont(weight="bold", slant="italic"), wraplength=490, justify="left")
         rec_label.pack(pady=(20, 5), padx=30, fill="x", anchor="w")
 
-        # ---> NEW: Side-by-side Button Layout <---
         btn_frame = ctk.CTkFrame(modal, fg_color="transparent")
         btn_frame.pack(pady=20)
 
@@ -127,16 +143,27 @@ class ResultsManager:
         ctk.CTkLabel(frame, text=f"Memory: {data['mem_kb']:.2f}KB", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=15, pady=(2, 15))
 
     def save_result_action(self, bfs_data, dfs_data, modal):
+        # Create a unique ID using a timestamp so validators don't overwrite each other
+        unique_id = datetime.now().strftime("%Y%m%d%H%M%S") 
+        
         record = {
-            "id": len(self.history) + 1,
+            "id": unique_id,
             "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "bfs": bfs_data,
             "dfs": dfs_data
         }
+        
         self.history.append(record)
-        self.save_history()
+        
+        # ---> PUSH TO CLOUD <---
+        if self.collection is not None:
+            try:
+                self.collection.insert_one(record)
+                print("Result successfully beamed to the Cloud Database!")
+            except Exception as e:
+                print("Failed to save to cloud:", e)
+
         modal.destroy()
-        print("Result saved successfully.")
 
     def show_history_list(self):
         list_modal = ctk.CTkToplevel(self.parent)
@@ -158,7 +185,9 @@ class ResultsManager:
             row = ctk.CTkFrame(scroll_frame, fg_color=COLOR_BATCH, corner_radius=6)
             row.pack(fill="x", pady=5)
             
-            ordinal = f"{record['id']}{'th' if 11<=record['id']<=13 else {1:'st',2:'nd',3:'rd'}.get(record['id']%10, 'th')} Simulation"
+            # ---> FIX: Use the list index to count 1st, 2nd, 3rd instead of the long ID timestamp <---
+            display_num = index + 1
+            ordinal = f"{display_num}{'th' if 11<=display_num<=13 else {1:'st',2:'nd',3:'rd'}.get(display_num%10, 'th')} Simulation"
             
             ctk.CTkLabel(row, text=ordinal, text_color="white", font=ctk.CTkFont(weight="bold")).pack(side="left", padx=15, pady=10)
             
@@ -170,8 +199,17 @@ class ResultsManager:
             btn_view.pack(side="right", padx=5, pady=10)
 
     def delete_history_item(self, index, list_modal):
+        record_to_delete = self.history[index]
         del self.history[index]
-        self.save_history()
+        
+        # ---> DELETE FROM CLOUD <---
+        if self.collection is not None:
+            try:
+                self.collection.delete_one({"id": record_to_delete["id"]})
+                print("Result successfully deleted from the Cloud Database!")
+            except Exception as e:
+                print("Failed to delete from cloud:", e)
+                
         list_modal.destroy()
         self.show_history_list() 
 
