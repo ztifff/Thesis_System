@@ -41,7 +41,7 @@ def run_bfs_generator(grid, start, exits):
         current, path = queue.popleft()
         x, y = current
         
-        if grid[y][x] == 1: continue
+        if grid[y][x] in [1, 'B']: continue
             
         last_curr, last_path = current, path
         nodes_expanded += 1
@@ -55,7 +55,7 @@ def run_bfs_generator(grid, start, exits):
         for dx, dy in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
             nx, ny = x + dx, y + dy
             if 0 <= ny < rows and 0 <= nx < cols:
-                if grid[ny][nx] != 1 and (nx, ny) not in visited_paths:
+                if grid[ny][nx] not in [1, 'B'] and (nx, ny) not in visited_paths:
                     new_path = path + [(nx, ny)]
                     visited_paths[(nx, ny)] = new_path
                     queue.append(((nx, ny), new_path))

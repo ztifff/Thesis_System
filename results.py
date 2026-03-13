@@ -12,7 +12,7 @@ COLOR_BATCH = "#3b82f6"
 COLOR_RESET = "#ef4444"
 TEXT_LIGHT = "#ffffff"
 TEXT_MUTED = "#a1a1aa"
-COLOR_RECOMMENDATION = "#facc15" # A nice yellow/gold for the recommendation text and "glow"
+COLOR_RECOMMENDATION = "#facc15" 
 
 class ResultsManager:
     def __init__(self, parent_ui):
@@ -21,14 +21,12 @@ class ResultsManager:
         self.history = self.load_history()
 
     def load_history(self):
-        """Loads saved results from a JSON file."""
         if os.path.exists(self.history_file):
             with open(self.history_file, 'r') as f:
                 return json.load(f)
         return []
 
     def save_history(self):
-        """Saves current history to a JSON file."""
         with open(self.history_file, 'w') as f:
             json.dump(self.history, f, indent=4)
 
@@ -39,27 +37,45 @@ class ResultsManager:
         modal.geometry(f"{width}x{height}+{x}+{y}")
 
     def _get_recommendation(self, bfs_data, dfs_data):
-        """Analyzes the metrics and returns a tuple: (recommendation_text, winner_name)"""
-        bfs_path = bfs_data['path']
-        dfs_path = dfs_data['path']
-        bfs_time = bfs_data['time_ms']
-        dfs_time = dfs_data['time_ms']
-
-        # Logic 1: Shortest Path wins
-        if bfs_path < dfs_path:
-            return f"💡 Recommendation: BFS is optimal for this maze. It successfully found a significantly shorter route to an exit ({bfs_path} steps vs DFS's {dfs_path} steps), demonstrating its theoretical pathfinding superiority.", "BFS"
-        elif dfs_path < bfs_path:
-            return f"💡 Recommendation: DFS is recommended for this maze. It managed to find a shorter route ({dfs_path} steps) and bypassed the heavy memory queue expansion of BFS.", "DFS"
+        """Analyzes all 4 metrics and declares a winner based on majority rules."""
+        bfs_points = 0
+        dfs_points = 0
         
-        # Logic 2: If path lengths are identical, the faster execution time wins
+        # 1. Compare Path
+        if bfs_data['path'] < dfs_data['path']: bfs_points += 1
+        elif dfs_data['path'] < bfs_data['path']: dfs_points += 1
+        
+        # 2. Compare Time
+        if bfs_data['time_ms'] < dfs_data['time_ms']: bfs_points += 1
+        elif dfs_data['time_ms'] < bfs_data['time_ms']: dfs_points += 1
+        
+        # 3. Compare Nodes
+        if bfs_data['nodes'] < dfs_data['nodes']: bfs_points += 1
+        elif dfs_data['nodes'] < bfs_data['nodes']: dfs_points += 1
+        
+        # 4. Compare Memory
+        if bfs_data['mem_kb'] < dfs_data['mem_kb']: bfs_points += 1
+        elif dfs_data['mem_kb'] < dfs_data['mem_kb']: dfs_points += 1
+        
+        # Determine the winner based on points!
+        if bfs_points > dfs_points:
+            text = f"💡 Recommendation: BFS is optimal. It outperformed DFS in {bfs_points} out of 4 metrics, proving to be the overall most efficient algorithm for this specific maze layout."
+            return text, "BFS"
+            
+        elif dfs_points > bfs_points:
+            text = f"💡 Recommendation: DFS is recommended. It outperformed BFS in {dfs_points} out of 4 metrics, demonstrating superior efficiency by bypassing heavy queue expansion."
+            return text, "DFS"
+            
         else:
-            if bfs_time < dfs_time:
-                return f"💡 Recommendation: BFS is recommended. Both algorithms found an equally optimal path ({bfs_path} steps), but BFS processed the dynamic graph faster ({bfs_time:.2f}ms).", "BFS"
+            # IT IS A 2-TO-2 TIE! Break the tie using the Execution Time.
+            if bfs_data['time_ms'] < dfs_data['time_ms']:
+                text = f"💡 Recommendation: BFS is recommended. Both algorithms tied in performance metrics (2 to 2), but BFS broke the tie with a faster execution time ({bfs_data['time_ms']:.2f}ms)."
+                return text, "BFS"
             else:
-                return f"💡 Recommendation: DFS is recommended. Both algorithms found an equally optimal path ({bfs_path} steps), but DFS computed it faster ({dfs_time:.2f}ms) with lower memory overhead.", "DFS"
-
-    def show_summary(self, bfs_data, dfs_data):
-        """Displays Desktop 3: Result Summary when a simulation finishes."""
+                text = f"💡 Recommendation: DFS is recommended. Both algorithms tied in performance metrics (2 to 2), but DFS broke the tie with a faster execution time ({dfs_data['time_ms']:.2f}ms)."
+                return text, "DFS"
+    # ---> NEW: Added rerun_callback parameter <---
+    def show_summary(self, bfs_data, dfs_data, rerun_callback=None):
         modal = ctk.CTkToplevel(self.parent)
         modal.title("Result Summary")
         modal.configure(fg_color=BG_SECONDARY)
@@ -68,15 +84,12 @@ class ResultsManager:
 
         ctk.CTkLabel(modal, text="Result Summary:", font=ctk.CTkFont(size=20, weight="bold"), text_color=TEXT_LIGHT).pack(pady=(20, 15), anchor="w", padx=30)
 
-        # Get the recommendation and the winner
         rec_text, winner = self._get_recommendation(bfs_data, dfs_data)
 
-        # Cards Container
         cards_frame = ctk.CTkFrame(modal, fg_color="transparent")
         cards_frame.pack(fill="x", padx=30)
         cards_frame.grid_columnconfigure((0, 1), weight=1)
 
-        # BFS Card (with dynamic border glow)
         bfs_bw = 3 if winner == "BFS" else 0
         bfs_bc = COLOR_RECOMMENDATION if winner == "BFS" else BG_MAIN
         bfs_frame = ctk.CTkFrame(cards_frame, fg_color=BG_MAIN, corner_radius=10, border_width=bfs_bw, border_color=bfs_bc)
@@ -84,7 +97,6 @@ class ResultsManager:
         ctk.CTkLabel(bfs_frame, text="BFS RESULT", fg_color=COLOR_BFS, corner_radius=6, text_color="white", font=ctk.CTkFont(weight="bold")).pack(fill="x", padx=10, pady=10)
         self._populate_card_data(bfs_frame, bfs_data)
 
-        # DFS Card (with dynamic border glow)
         dfs_bw = 3 if winner == "DFS" else 0
         dfs_bc = COLOR_RECOMMENDATION if winner == "DFS" else BG_MAIN
         dfs_frame = ctk.CTkFrame(cards_frame, fg_color=BG_MAIN, corner_radius=10, border_width=dfs_bw, border_color=dfs_bc)
@@ -92,17 +104,23 @@ class ResultsManager:
         ctk.CTkLabel(dfs_frame, text="DFS RESULT", fg_color=COLOR_DFS, corner_radius=6, text_color="white", font=ctk.CTkFont(weight="bold")).pack(fill="x", padx=10, pady=10)
         self._populate_card_data(dfs_frame, dfs_data)
 
-        # Recommendation Text
         rec_label = ctk.CTkLabel(modal, text=rec_text, text_color=COLOR_RECOMMENDATION, font=ctk.CTkFont(weight="bold", slant="italic"), wraplength=490, justify="left")
         rec_label.pack(pady=(20, 5), padx=30, fill="x", anchor="w")
 
-        # Save Button
-        btn_save = ctk.CTkButton(modal, text="💾 Save Result", fg_color=COLOR_BATCH, font=ctk.CTkFont(weight="bold", size=14), 
+        # ---> NEW: Side-by-side Button Layout <---
+        btn_frame = ctk.CTkFrame(modal, fg_color="transparent")
+        btn_frame.pack(pady=20)
+
+        if rerun_callback:
+            btn_rerun = ctk.CTkButton(btn_frame, text="🔄 Rerun Same Maze", fg_color=COLOR_DFS, font=ctk.CTkFont(weight="bold", size=14), 
+                                      command=lambda: [modal.destroy(), rerun_callback()])
+            btn_rerun.pack(side="left", padx=10)
+
+        btn_save = ctk.CTkButton(btn_frame, text="💾 Save Result", fg_color=COLOR_BATCH, font=ctk.CTkFont(weight="bold", size=14), 
                                  command=lambda: self.save_result_action(bfs_data, dfs_data, modal))
-        btn_save.pack(pady=20)
+        btn_save.pack(side="left", padx=10)
 
     def _populate_card_data(self, frame, data):
-        """Helper to fill stats in the summary cards."""
         ctk.CTkLabel(frame, text=f"Nodes: {data['nodes']}", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=15, pady=(5, 2))
         ctk.CTkLabel(frame, text=f"Time: {data['time_ms']:.2f}ms", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=15, pady=2)
         ctk.CTkLabel(frame, text=f"Path: {data['path']}", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=15, pady=2)
@@ -121,7 +139,6 @@ class ResultsManager:
         print("Result saved successfully.")
 
     def show_history_list(self):
-        """Displays Desktop 4: Result History List."""
         list_modal = ctk.CTkToplevel(self.parent)
         list_modal.title("Result History")
         list_modal.configure(fg_color=BG_SECONDARY)
@@ -159,7 +176,6 @@ class ResultsManager:
         self.show_history_list() 
 
     def show_history_detail(self, record, title, parent_modal):
-        """Displays Desktop 5: Detailed view of a specific history record."""
         parent_modal.destroy() 
         
         detail_modal = ctk.CTkToplevel(self.parent)
@@ -178,15 +194,12 @@ class ResultsManager:
 
         ctk.CTkLabel(detail_modal, text=f"Viewing: {title}", text_color=TEXT_MUTED, font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=30, pady=(0, 15))
 
-        # Get the recommendation and the winner for historical records
         rec_text, winner = self._get_recommendation(record['bfs'], record['dfs'])
 
-        # Cards Container 
         cards_frame = ctk.CTkFrame(detail_modal, fg_color="transparent")
         cards_frame.pack(fill="x", padx=30)
         cards_frame.grid_columnconfigure((0, 1), weight=1)
 
-        # BFS Card (with dynamic border glow)
         bfs_bw = 3 if winner == "BFS" else 0
         bfs_bc = COLOR_RECOMMENDATION if winner == "BFS" else BG_MAIN
         bfs_frame = ctk.CTkFrame(cards_frame, fg_color=BG_MAIN, corner_radius=10, border_width=bfs_bw, border_color=bfs_bc)
@@ -194,7 +207,6 @@ class ResultsManager:
         ctk.CTkLabel(bfs_frame, text="BFS RESULT", fg_color=COLOR_BFS, corner_radius=6, text_color="white", font=ctk.CTkFont(weight="bold")).pack(fill="x", padx=10, pady=10)
         self._populate_card_data(bfs_frame, record['bfs'])
 
-        # DFS Card (with dynamic border glow)
         dfs_bw = 3 if winner == "DFS" else 0
         dfs_bc = COLOR_RECOMMENDATION if winner == "DFS" else BG_MAIN
         dfs_frame = ctk.CTkFrame(cards_frame, fg_color=BG_MAIN, corner_radius=10, border_width=dfs_bw, border_color=dfs_bc)
@@ -202,6 +214,5 @@ class ResultsManager:
         ctk.CTkLabel(dfs_frame, text="DFS RESULT", fg_color=COLOR_DFS, corner_radius=6, text_color="white", font=ctk.CTkFont(weight="bold")).pack(fill="x", padx=10, pady=10)
         self._populate_card_data(dfs_frame, record['dfs'])
 
-        # Recommendation Text
         rec_label = ctk.CTkLabel(detail_modal, text=rec_text, text_color=COLOR_RECOMMENDATION, font=ctk.CTkFont(weight="bold", slant="italic"), wraplength=490, justify="left")
         rec_label.pack(pady=(20, 10), padx=30, fill="x", anchor="w")

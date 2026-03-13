@@ -95,7 +95,7 @@ class MazeUI(ctk.CTk):
         self._add_legend_item(self.legend_card, COLOR_BFS, "BFS Final Path")
         self._add_legend_item(self.legend_card, COLOR_DFS_VISITED, "DFS Explored")
         self._add_legend_item(self.legend_card, COLOR_DFS, "DFS Final Path")
-        
+        self._add_legend_item(self.legend_card, "#ff0000", "Blocked Exit")
         # Bottom padding for the legend card
         ctk.CTkFrame(self.legend_card, fg_color="transparent", height=5).pack() # Reduced from 10 to 5
 
@@ -174,7 +174,9 @@ class MazeUI(ctk.CTk):
         for y in range(height):
             for x in range(width):
                 val = maze_grid[y][x]
-                color = "#000000" if val == 1 else "#ffffff"
+                if val == 1: color = "#000000"
+                elif val == 'B': color = "#ff0000" # Draw the Red Box!
+                else: color = "#ffffff"
                 self.color_cell("bfs", x, y, color)
                 self.color_cell("dfs", x, y, color)
 
