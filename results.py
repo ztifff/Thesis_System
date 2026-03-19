@@ -80,7 +80,7 @@ class ResultsManager:
             return text, "BFS"
             
         elif dfs_points > bfs_points:
-            text = f"💡 Recommendation: DFS is recommended. It outperformed BFS in {dfs_points} out of 4 metrics, demonstrating superior efficiency by bypassing heavy queue expansion."
+            text = f"💡 Recommendation: DFS is recommended. It outperformed BFS in {dfs_points} out of 4 metrics, proving to be the overall most efficient algorithm for this specific maze layout."
             return text, "DFS"
             
         else:
@@ -143,11 +143,19 @@ class ResultsManager:
         ctk.CTkLabel(frame, text=f"Memory: {data['mem_kb']:.2f}KB", text_color=TEXT_LIGHT, font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=15, pady=(2, 15))
 
     def save_result_action(self, bfs_data, dfs_data, modal):
-        # Create a unique ID using a timestamp so validators don't overwrite each other
-        unique_id = datetime.now().strftime("%Y%m%d%H%M%S") 
-        
+        # ---> NEW SEQUENTIAL ID LOGIC <---
+        # Ask the cloud how many documents exist, then add 1
+        if self.collection is not None:
+            try:
+                current_total = self.collection.count_documents({})
+                new_id = current_total + 1
+            except Exception:
+                new_id = len(self.history) + 1
+        else:
+            new_id = len(self.history) + 1
+            
         record = {
-            "id": unique_id,
+            "id": new_id,  # Now it will be 1, 2, 3, 4!
             "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "bfs": bfs_data,
             "dfs": dfs_data
@@ -159,7 +167,7 @@ class ResultsManager:
         if self.collection is not None:
             try:
                 self.collection.insert_one(record)
-                print("Result successfully beamed to the Cloud Database!")
+                print(f"Result #{new_id} successfully beamed to the Cloud Database!")
             except Exception as e:
                 print("Failed to save to cloud:", e)
 
