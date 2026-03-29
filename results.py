@@ -228,7 +228,8 @@ class ResultsManager:
         detail_modal.title("Result History Detail")
         detail_modal.configure(fg_color=BG_SECONDARY)
         detail_modal.attributes("-topmost", True)
-        self.center_modal(detail_modal, 550, 450)
+        # ---> INCREASED HEIGHT TO 520 TO FIT THE NEW BUTTON <---
+        self.center_modal(detail_modal, 550, 520)
 
         header_frame = ctk.CTkFrame(detail_modal, fg_color="transparent")
         header_frame.pack(fill="x", padx=30, pady=(20, 10))
@@ -262,3 +263,29 @@ class ResultsManager:
 
         rec_label = ctk.CTkLabel(detail_modal, text=rec_text, text_color=COLOR_RECOMMENDATION, font=ctk.CTkFont(weight="bold", slant="italic"), wraplength=490, justify="left")
         rec_label.pack(pady=(20, 10), padx=30, fill="x", anchor="w")
+
+        # ---> NEW ACCURACY RATE BUTTON & LOGIC <---
+        acc_frame = ctk.CTkFrame(detail_modal, fg_color="transparent")
+        acc_frame.pack(fill="x", padx=30, pady=(0, 10))
+
+        # This label starts empty and hidden
+        accuracy_label = ctk.CTkLabel(acc_frame, text="", text_color="#34d399", font=ctk.CTkFont(weight="bold", size=13), justify="center")
+
+        def calculate_and_show_accuracy():
+            # Calculate accuracy: (BFS Path / DFS Path) * 100
+            bfs_path = record['bfs']['path']
+            dfs_path = record['dfs']['path']
+            accuracy = (bfs_path / dfs_path) * 100 if dfs_path > 0 else 0
+            
+            # Update the text and show it
+            acc_text = f"🎯 DFS Path Accuracy: {accuracy:.2f}%\n(Full multi-metric statistical proof available in MATLAB Analytics)"
+            accuracy_label.configure(text=acc_text)
+            accuracy_label.pack(pady=5)
+            
+            # Disable the button so they can't click it twice
+            btn_accuracy.configure(state="disabled", text="Calculated Successfully")
+
+        btn_accuracy = ctk.CTkButton(acc_frame, text="📊 Get Accuracy Rate", fg_color=COLOR_BATCH, 
+                                     font=ctk.CTkFont(weight="bold", size=14), 
+                                     command=calculate_and_show_accuracy)
+        btn_accuracy.pack(pady=5)
