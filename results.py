@@ -121,7 +121,7 @@ class ResultsManager:
         ctk.CTkLabel(dfs_frame, text="DFS RESULT", fg_color=COLOR_DFS, corner_radius=6, text_color="white", font=ctk.CTkFont(weight="bold")).pack(fill="x", padx=10, pady=10)
         self._populate_card_data(dfs_frame, dfs_data)
 
-        rec_label = ctk.CTkLabel(modal, text=rec_text, text_color=COLOR_RECOMMENDATION, font=ctk.CTkFont(weight="bold", slant="italic"), wraplength=490, justify="left")
+        rec_label = ctk.CTkLabel(modal, text=rec_text, text_color=COLOR_RECOMMENDATION, font=ctk.CTkFont(weight="bold"), wraplength=490, justify="left")
         rec_label.pack(pady=(20, 5), padx=30, fill="x", anchor="w")
 
         btn_frame = ctk.CTkFrame(modal, fg_color="transparent")
@@ -261,7 +261,7 @@ class ResultsManager:
         ctk.CTkLabel(dfs_frame, text="DFS RESULT", fg_color=COLOR_DFS, corner_radius=6, text_color="white", font=ctk.CTkFont(weight="bold")).pack(fill="x", padx=10, pady=10)
         self._populate_card_data(dfs_frame, record['dfs'])
 
-        rec_label = ctk.CTkLabel(detail_modal, text=rec_text, text_color=COLOR_RECOMMENDATION, font=ctk.CTkFont(weight="bold", slant="italic"), wraplength=490, justify="left")
+        rec_label = ctk.CTkLabel(detail_modal, text=rec_text, text_color=COLOR_RECOMMENDATION, font=ctk.CTkFont(weight="bold"), wraplength=490, justify="left")
         rec_label.pack(pady=(20, 10), padx=30, fill="x", anchor="w")
 
         # ---> NEW ACCURACY RATE BUTTON & LOGIC <---
