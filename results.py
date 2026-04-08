@@ -1,6 +1,4 @@
 import customtkinter as ctk
-import json
-import os
 from datetime import datetime
 from pymongo import MongoClient
 import certifi
@@ -268,24 +266,55 @@ class ResultsManager:
         acc_frame = ctk.CTkFrame(detail_modal, fg_color="transparent")
         acc_frame.pack(fill="x", padx=30, pady=(0, 10))
 
-        # This label starts empty and hidden
-        accuracy_label = ctk.CTkLabel(acc_frame, text="", text_color="#34d399", font=ctk.CTkFont(weight="bold", size=13), justify="center")
+        # 1. Create the Progress Bar (hidden initially)
+        progress_bar = ctk.CTkProgressBar(acc_frame, width=250, height=10)
+        progress_bar.set(0)
+
+        # 2. Label for both loading text and final result
+        accuracy_label = ctk.CTkLabel(acc_frame, text="", font=ctk.CTkFont(weight="bold", size=13), justify="center")
 
         def calculate_and_show_accuracy():
-            # Calculate accuracy: (BFS Path / DFS Path) * 100
-            bfs_path = record['bfs']['path']
-            dfs_path = record['dfs']['path']
-            accuracy = (bfs_path / dfs_path) * 100 if dfs_path > 0 else 0
+            # Disable the button and show loading state
+            btn_accuracy.configure(state="disabled", text="Calculating...")
             
-            # Update the text and show it
-            acc_text = f"🎯 DFS Path Accuracy: {accuracy:.2f}%\n(Full multi-metric statistical proof available in MATLAB Analytics)"
-            accuracy_label.configure(text=acc_text)
-            accuracy_label.pack(pady=5)
+            # Pack the progress bar and label into the view
+            progress_bar.pack(pady=(5, 5))
+            accuracy_label.pack(pady=(0, 5))
             
-            # Disable the button so they can't click it twice
-            btn_accuracy.configure(state="disabled", text="Calculated Successfully")
+            # Define the authentic-looking loading phases
+            loading_steps = [
+                (0.2, "Initializing calculation engine..."),
+                (0.5, "Fetching BFS and DFS path metrics..."),
+                (0.8, "Computing differential accuracy..."),
+                (1.0, "Finalizing results...")
+            ]
+            
+            def perform_step(step_idx):
+                if step_idx < len(loading_steps):
+                    # Update progress bar and text
+                    progress, text = loading_steps[step_idx]
+                    progress_bar.set(progress)
+                    accuracy_label.configure(text=f"⏳ {text}", text_color="gray") # Use a muted color while loading
+                    
+                    # Schedule the next step after an 800ms delay
+                    detail_modal.after(1000, perform_step, step_idx + 1)
+                else:
+                    # Loading finished! Hide progress bar and calculate actual result
+                    progress_bar.pack_forget() 
+                    
+                    bfs_path = record['bfs']['path']
+                    dfs_path = record['dfs']['path']
+                    accuracy = (bfs_path / dfs_path) * 100 if dfs_path > 0 else 0
+                    
+                    # Update with final success UI
+                    acc_text = f"🎯 Path Accuracy: {accuracy:.2f}%"
+                    accuracy_label.configure(text=acc_text, text_color="#34d399") # Back to success green
+                    btn_accuracy.configure(text="Calculated Successfully")
 
-        btn_accuracy = ctk.CTkButton(acc_frame, text="📊 Get Accuracy Rate", fg_color=COLOR_BATCH, 
+            # Start the loading sequence at step 0
+            perform_step(0)
+
+        btn_accuracy = ctk.CTkButton(acc_frame, text="📊 Get Accuracy Rate", fg_color="#3b82f6", # Or use your COLOR_BATCH variable
                                      font=ctk.CTkFont(weight="bold", size=14), 
                                      command=calculate_and_show_accuracy)
         btn_accuracy.pack(pady=5)
